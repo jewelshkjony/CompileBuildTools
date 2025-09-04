@@ -1,0 +1,29 @@
+<manifest>
+  <remote name="aosp" fetch="https://android.googlesource.com/" />
+  <default revision="android-14.0.0_r1" remote="aosp" sync-j="4" />
+
+  <!-- Core build system -->
+  <project path="build/make" name="platform/build" />
+  <project path="build/soong" name="platform/build/soong" />
+  <project path="build/blueprint" name="platform/build/blueprint" />
+  <project path="build/kati" name="platform/build/kati" />
+
+  <!-- Frameworks and system libs needed for tools -->
+  <project path="frameworks/base" name="platform/frameworks/base" />
+  <project path="frameworks/native" name="platform/frameworks/native" />
+  <project path="frameworks/av" name="platform/frameworks/av" />
+  <project path="system/core" name="platform/system/core" />
+  <project path="system/tools/aapt" name="platform/system/tools/aapt" />
+  <project path="frameworks/base/tools/aapt2" name="platform/frameworks/base/tools/aapt2" />
+  <project path="frameworks/base/tools/aidl" name="platform/frameworks/base/tools/aidl" />
+  <project path="frameworks/base/tools/apksigner" name="platform/frameworks/base/tools/apksigner" />
+  <project path="frameworks/base/tools/zipalign" name="platform/frameworks/base/tools/zipalign" />
+
+  <!-- External dependencies -->
+  <project path="external/protobuf" name="platform/external/protobuf" />
+  <project path="external/zlib" name="platform/external/zlib" />
+
+  <!-- Prebuilts -->
+  <project path="prebuilts/sdk" name="platform/prebuilts/sdk" clone-depth="1" />
+  <project path="prebuilts/ndk" name="platform/prebuilts/ndk" clone-depth="1" />
+</manifest>
