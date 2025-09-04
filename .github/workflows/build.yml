@@ -52,8 +52,8 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         cd $AOSP_DIR
-        ./repo init -u https://android.googlesource.com/platform/manifest \
-          -m .github/aosp-minimal.xml -b $ANDROID_TAG
+        $GITHUB_WORKSPACE/aosp/repo init -u https://android.googlesource.com/platform/manifest \
+          -m $GITHUB_WORKSPACE/.github/aosp-minimal.xml -b $ANDROID_TAG
         ./repo sync -j$(nproc) --current-branch --no-tags --depth=1
 
     - name: Download Android NDK
