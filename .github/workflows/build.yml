@@ -50,7 +50,7 @@ jobs:
         # Use absolute path to manifest in your fork
         ./repo init -u https://android.googlesource.com/platform/manifest \
           -m $GITHUB_WORKSPACE/.github/aosp-minimal.xml -b $ANDROID_TAG
-        ./repo sync -j$(nproc) --current-branch --no-tags --depth=1
+        ./repo sync -j$(nproc) --current-branch --no-tags
 
     - name: Download Android NDK
       run: |
