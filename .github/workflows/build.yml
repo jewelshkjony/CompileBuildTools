@@ -1,0 +1,78 @@
+name: Build AOSP Tools for Termux
+
+on:
+  workflow_dispatch:
+    inputs:
+      android_tag:
+        description: 'AOSP tag (e.g., android-14.0.0_r1 for API 36)'
+        required: true
+        default: 'android-14.0.0_r1'
+      abi:
+        description: 'Target ABI (arm64-v8a, armeabi-v7a)'
+        required: true
+        default: 'arm64-v8a'
+      ndk:
+        description: 'Android NDK'
+        required: true
+        default: 'r28c'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+      ANDROID_TAG: ${{ github.event.inputs.android_tag }}
+      ABI: ${{ github.event.inputs.abi }}
+      AOSP_DIR: ${{ github.workspace }}/aosp
+      NDK_VERSION: ${{ github.event.inputs.ndk }}
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y openjdk-11-jdk git curl unzip build-essential \
+          python3 python-is-python3 ninja-build
+
+    - name: Download repo tool
+      run: |
+        mkdir -p $AOSP_DIR
+        cd $AOSP_DIR
+        curl https://storage.googleapis.com/git-repo-downloads/repo > repo
+        chmod a+x repo
+
+    - name: Init and sync AOSP
+      run: |
+        cd $AOSP_DIR
+        ./repo init -u https://android.googlesource.com/platform/manifest -b $ANDROID_TAG
+        ./repo sync -j$(nproc) --current-branch --no-tags
+
+    - name: Download Android NDK
+      run: |
+        cd ${{ github.workspace }}
+        curl -O https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux.zip
+        unzip android-ndk-${NDK_VERSION}-linux.zip
+        mv android-ndk-${NDK_VERSION} android-ndk
+
+    - name: Build tools
+      run: |
+        cd $AOSP_DIR
+        source build/envsetup.sh
+        # For Termux, choose an ARM/ARM64 target
+        if [ "$ABI" = "arm64-v8a" ]; then
+          lunch aosp_arm64-eng
+        else
+          lunch aosp_arm-eng
+        fi
+        make -j$(nproc) aapt aapt2 aidl apksigner zipalign
+
+    - name: Collect binaries
+      run: |
+        mkdir -p ${{ github.workspace }}/out-tools
+        find $AOSP_DIR/out/target/product -type f \( -name aapt -o -name aapt2 -o -name aidl -o -name apksigner -o -name zipalign \) \
+          -exec cp {} ${{ github.workspace }}/out-tools \;
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: aosp-tools-${{ env.ABI }}-${{ env.ANDROID_TAG }}
+        path: ${{ github.workspace }}/out-tools
