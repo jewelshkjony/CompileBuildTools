@@ -1,4 +1,4 @@
-name: Build AOSP Tools for Termux
+name: Build Minimal AOSP Tools for Termux
 
 on:
   workflow_dispatch:
@@ -12,9 +12,10 @@ on:
         required: true
         default: 'arm64-v8a'
       ndk:
-        description: 'Android NDK'
+        description: 'Android NDK version'
         required: true
         default: 'r28c'
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -33,31 +34,39 @@ jobs:
         sudo apt-get install -y openjdk-11-jdk git curl unzip build-essential \
           python3 python-is-python3 ninja-build
 
+    - name: Cache AOSP sources
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.AOSP_DIR }}
+        key: aosp-${{ env.ANDROID_TAG }}-${{ env.ABI }}
+
     - name: Download repo tool
+      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         mkdir -p $AOSP_DIR
         cd $AOSP_DIR
         curl https://storage.googleapis.com/git-repo-downloads/repo > repo
         chmod a+x repo
 
-    - name: Init and sync AOSP
+    - name: Init and sync minimal AOSP
+      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         cd $AOSP_DIR
-        ./repo init -u https://android.googlesource.com/platform/manifest -b $ANDROID_TAG
-        ./repo sync -j$(nproc) --current-branch --no-tags
+        ./repo init -u https://android.googlesource.com/platform/manifest \
+          -m .github/aosp-minimal.xml -b $ANDROID_TAG
+        ./repo sync -j$(nproc) --current-branch --no-tags --depth=1
 
     - name: Download Android NDK
       run: |
         cd ${{ github.workspace }}
         curl -O https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux.zip
-        unzip android-ndk-${NDK_VERSION}-linux.zip
+        unzip -q android-ndk-${NDK_VERSION}-linux.zip
         mv android-ndk-${NDK_VERSION} android-ndk
 
     - name: Build tools
       run: |
         cd $AOSP_DIR
         source build/envsetup.sh
-        # For Termux, choose an ARM/ARM64 target
         if [ "$ABI" = "arm64-v8a" ]; then
           lunch aosp_arm64-eng
         else
@@ -68,7 +77,8 @@ jobs:
     - name: Collect binaries
       run: |
         mkdir -p ${{ github.workspace }}/out-tools
-        find $AOSP_DIR/out/target/product -type f \( -name aapt -o -name aapt2 -o -name aidl -o -name apksigner -o -name zipalign \) \
+        find $AOSP_DIR/out/target/product -type f \
+          \( -name aapt -o -name aapt2 -o -name aidl -o -name apksigner -o -name zipalign \) \
           -exec cp {} ${{ github.workspace }}/out-tools \;
 
     - name: Upload artifacts
