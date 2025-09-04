@@ -28,20 +28,16 @@ jobs:
       NDK_VERSION: ${{ github.event.inputs.ndk }}
 
     steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
     - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y openjdk-11-jdk git curl unzip build-essential \
           python3 python-is-python3 ninja-build
 
-    - name: Cache AOSP sources
-      uses: actions/cache@v4
-      with:
-        path: ${{ env.AOSP_DIR }}
-        key: aosp-${{ env.ANDROID_TAG }}-${{ env.ABI }}
-
     - name: Download repo tool
-      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         mkdir -p $AOSP_DIR
         cd $AOSP_DIR
@@ -49,10 +45,10 @@ jobs:
         chmod a+x repo
 
     - name: Init and sync minimal AOSP
-      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         cd $AOSP_DIR
-        $GITHUB_WORKSPACE/aosp/repo init -u https://android.googlesource.com/platform/manifest \
+        # Use absolute path to manifest in your fork
+        ./repo init -u https://android.googlesource.com/platform/manifest \
           -m $GITHUB_WORKSPACE/.github/aosp-minimal.xml -b $ANDROID_TAG
         ./repo sync -j$(nproc) --current-branch --no-tags --depth=1
 
